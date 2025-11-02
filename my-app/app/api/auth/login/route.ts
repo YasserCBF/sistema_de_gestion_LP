@@ -15,17 +15,17 @@ const MOCK_USERS = [
   {
     id: 2,
     dni: "12345678",
-    password: "1234",
+    password: "123",
     role: "admin-bienes",
     name: "Yasser",
     birthDate: "1995-01-15",
     status: "activo",
   },
-  // Admin Biblioteca - Yasser
+  // Admin Biblioteca - Yassr
   {
     id: 3,
-    dni: "87654321",
-    password: "12345",
+    dni: "987654321",
+    password: "123",
     role: "admin-biblioteca",
     name: "Yasser",
     birthDate: "1995-01-15",

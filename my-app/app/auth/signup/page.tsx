@@ -80,7 +80,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         <div className="mb-6 flex justify-center">
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/descarga-removebg-preview-9msaj3pZXKrmydhYhCxsyijD0oGWIc.png"
+            src="/images/design-mode/descarga-removebg-preview.png"
             alt="GUE Badge"
             width={80}
             height={80}

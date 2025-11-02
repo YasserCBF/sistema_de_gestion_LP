@@ -1,15 +1,12 @@
 import type React from "react"
 import type { Metadata } from "next"
-
-import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
-import { Geist_Mono, Assistant as V0_Font_Assistant, Geist_Mono as V0_Font_Geist_Mono, Abril_Fatface as V0_Font_Abril_Fatface } from 'next/font/google'
+import { Geist, Geist_Mono } from "next/font/google"
 
 // Initialize fonts
-const _assistant = V0_Font_Assistant({ subsets: ['latin'], weight: ["200","300","400","500","600","700","800"] })
-const _geistMono = V0_Font_Geist_Mono({ subsets: ['latin'], weight: ["100","200","300","400","500","600","700","800","900"] })
-const _abrilFatface = V0_Font_Abril_Fatface({ subsets: ['latin'], weight: ["400"] })
+const _geistSans = Geist({ subsets: ["latin"] })
+const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Gestión de Libros y Bienes",
@@ -23,10 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`font-sans antialiased`}>
-        {children}
-        <Analytics />
-      </body>
+      <body className={`${_geistSans.className} antialiased`}>{children}</body>
     </html>
   )
 }

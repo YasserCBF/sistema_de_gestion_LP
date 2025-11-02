@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,69 +32,74 @@ export default function BienesRegisterView() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value })
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        setError("Por favor selecciona un archivo de imagen")
-        return
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      setError("Por favor selecciona un archivo de imagen")
+      return
+    }
+
+    setFormData((prev) => ({ ...prev, imagen: file }))
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result as string)
+      setError("")
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      })
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        setShowCamera(true)
       }
-      setFormData({ ...formData, imagen: file })
+    } catch {
+      setError("No se pudo acceder a la cámara. Verifica los permisos.")
+    }
+  }
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return
+
+    const context = canvasRef.current.getContext("2d")
+    if (!context) return
+
+    canvasRef.current.width = videoRef.current.videoWidth
+    canvasRef.current.height = videoRef.current.videoHeight
+    context.drawImage(videoRef.current, 0, 0)
+
+    canvasRef.current.toBlob((blob) => {
+      if (!blob) return
+
+      const file = new File([blob], "bien-foto.jpg", { type: "image/jpeg" })
+      setFormData((prev) => ({ ...prev, imagen: file }))
+
       const reader = new FileReader()
       reader.onload = (event) => {
         setImagePreview(event.target?.result as string)
       }
       reader.readAsDataURL(file)
-      setError("")
-    }
-  }
+    })
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        setShowCamera(true)
-      }
-    } catch (err) {
-      setError("No se pudo acceder a la cámara")
-    }
-  }
-
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext("2d")
-      if (context) {
-        canvasRef.current.width = videoRef.current.videoWidth
-        canvasRef.current.height = videoRef.current.videoHeight
-        context.drawImage(videoRef.current, 0, 0)
-
-        canvasRef.current.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" })
-            setFormData({ ...formData, imagen: file })
-            const reader = new FileReader()
-            reader.onload = (event) => {
-              setImagePreview(event.target?.result as string)
-            }
-            reader.readAsDataURL(file)
-          }
-        })
-
-        stopCamera()
-      }
-    }
+    stopCamera()
   }
 
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
+    if (videoRef.current?.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
       tracks.forEach((track) => track.stop())
       setShowCamera(false)
@@ -103,7 +107,7 @@ export default function BienesRegisterView() {
   }
 
   const removeImage = () => {
-    setFormData({ ...formData, imagen: null })
+    setFormData((prev) => ({ ...prev, imagen: null }))
     setImagePreview(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -113,47 +117,51 @@ export default function BienesRegisterView() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setSuccess(false)
 
-    if (!formData.nombre || !formData.codigo || !formData.cantidad) {
-      setError("Por favor completa los campos requeridos")
+    if (!formData.nombre?.trim() || !formData.codigo?.trim() || !formData.cantidad) {
+      setError("Por favor completa los campos requeridos: Nombre, Código y Cantidad")
       return
     }
 
-    // Frontend only - no mock API
-    console.log("Datos del bien para enviar:", formData)
+    if (Number(formData.cantidad) <= 0) {
+      setError("La cantidad debe ser mayor a 0")
+      return
+    }
+
+    console.log("[v0] Datos del bien:", formData)
     setSuccess(true)
 
-    // Reset form
-    setFormData({
-      nombre: "",
-      descripcion: "",
-      categoria: "",
-      codigo: "",
-      valor: "",
-      cantidad: "",
-      estado: "disponible",
-      ubicacion: "",
-      imagen: null,
-    })
-    removeImage()
-
-    setTimeout(() => setSuccess(false), 3000)
+    // Reset form after success
+    setTimeout(() => {
+      setFormData({
+        nombre: "",
+        descripcion: "",
+        categoria: "",
+        codigo: "",
+        valor: "",
+        cantidad: "",
+        estado: "disponible",
+        ubicacion: "",
+        imagen: null,
+      })
+      removeImage()
+      setSuccess(false)
+    }, 2000)
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Registrar Nuevo Bien</CardTitle>
+          <CardTitle className="text-2xl">Registrar Nuevo Bien</CardTitle>
           <CardDescription>Añade un nuevo activo al inventario</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {success && (
-              <Alert className="bg-green-50 border-green-200">
+              <Alert className="bg-green-50 border-green-200 text-green-800">
                 <Check className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">Datos listos para procesar</AlertDescription>
+                <AlertDescription>Datos listos para procesar</AlertDescription>
               </Alert>
             )}
 
@@ -166,7 +174,7 @@ export default function BienesRegisterView() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nombre">Nombre del Bien</Label>
+                <Label htmlFor="nombre">Nombre del Bien *</Label>
                 <Input
                   id="nombre"
                   name="nombre"
@@ -174,11 +182,12 @@ export default function BienesRegisterView() {
                   value={formData.nombre}
                   onChange={handleChange}
                   required
+                  maxLength={100}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="codigo">Código de Bien</Label>
+                <Label htmlFor="codigo">Código de Bien *</Label>
                 <Input
                   id="codigo"
                   name="codigo"
@@ -186,13 +195,14 @@ export default function BienesRegisterView() {
                   value={formData.codigo}
                   onChange={handleChange}
                   required
+                  maxLength={20}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría</Label>
                 <Select value={formData.categoria} onValueChange={(value) => handleSelectChange("categoria", value)}>
-                  <SelectTrigger>
+                  <SelectTrigger id="categoria">
                     <SelectValue placeholder="Selecciona una categoría" />
                   </SelectTrigger>
                   <SelectContent>
@@ -206,7 +216,7 @@ export default function BienesRegisterView() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="cantidad">Cantidad</Label>
+                <Label htmlFor="cantidad">Cantidad *</Label>
                 <Input
                   id="cantidad"
                   name="cantidad"
@@ -215,6 +225,7 @@ export default function BienesRegisterView() {
                   value={formData.cantidad}
                   onChange={handleChange}
                   required
+                  min="1"
                 />
               </div>
 
@@ -227,13 +238,14 @@ export default function BienesRegisterView() {
                   placeholder="0"
                   value={formData.valor}
                   onChange={handleChange}
+                  min="0"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="estado">Estado</Label>
                 <Select value={formData.estado} onValueChange={(value) => handleSelectChange("estado", value)}>
-                  <SelectTrigger>
+                  <SelectTrigger id="estado">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -253,6 +265,7 @@ export default function BienesRegisterView() {
                   placeholder="Ej: Sala de Tecnología 1"
                   value={formData.ubicacion}
                   onChange={handleChange}
+                  maxLength={100}
                 />
               </div>
             </div>
@@ -266,6 +279,7 @@ export default function BienesRegisterView() {
                 value={formData.descripcion}
                 onChange={handleChange}
                 rows={4}
+                maxLength={500}
               />
             </div>
 
@@ -273,7 +287,7 @@ export default function BienesRegisterView() {
               <Label>Foto del Bien</Label>
 
               {!showCamera ? (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-col sm:flex-row">
                   <Button
                     type="button"
                     variant="outline"
@@ -291,7 +305,7 @@ export default function BienesRegisterView() {
               ) : (
                 <div className="space-y-2">
                   <video ref={videoRef} autoPlay playsInline className="w-full rounded-md bg-black" />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-col sm:flex-row">
                     <Button type="button" className="flex-1" onClick={capturePhoto}>
                       Capturar Foto
                     </Button>
@@ -310,13 +324,14 @@ export default function BienesRegisterView() {
                 <div className="relative w-full">
                   <img
                     src={imagePreview || "/placeholder.svg"}
-                    alt="Preview"
-                    className="w-full h-64 object-cover rounded-md"
+                    alt="Vista previa del bien"
+                    className="w-full h-64 object-cover rounded-md border border-gray-200"
                   />
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    aria-label="Eliminar imagen"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -324,7 +339,7 @@ export default function BienesRegisterView() {
               )}
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" size="lg">
               Registrar Bien
             </Button>
           </form>
